@@ -39,15 +39,26 @@ pipeline{
 		stage("Deploy"){
 			steps{
 				withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'my-creds', secretKeyVariable:'AWS_SECRET_ACCESS_KEY')]){
-					sh "aws cloudformation deploy --template-file packaged-template.yml --stack-name ${params.PROJECT_NAME}-${params.ENV} --parameter-overrides Env=${params.ENV} ProjectName=${params.PROJECT_NAME} --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM --tags Key1=Value1"
-                    script {
-                        def stackStatus = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name ${params.PROJECT_NAME}-${params.ENV} --query 'Stacks[0].StackStatus'").trim()
-                        if (stackStatus == 'ROLLBACK_COMPLETE') {
-                            sh "aws cloudformation delete-stack --stack-name ${params.PROJECT_NAME}-${params.ENV}"
-                        }
-                    }
+                    sh "aws cloudformation deploy --template-file packaged-template.yml --stack-name ${params.PROJECT_NAME}-${params.ENV} --parameter-overrides Env=${params.ENV} ProjectName=${params.PROJECT_NAME} --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM --tags Key1=Value1"
 			    }
 		    }
 	    }
+    }
+    post{
+        always{
+            withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'my-creds', secretKeyVariable:'AWS_SECRET_ACCESS_KEY')]){
+                sh "aws cloudformation describe-stack-events --stack-name ${params.PROJECT_NAME}-${params.ENV}"
+            }
+        }
+        failure{
+            withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'my-creds', secretKeyVariable:'AWS_SECRET_ACCESS_KEY')]){
+                script {
+                    def stackStatus = sh(returnStdout: true, script: "aws cloudformation describe-stacks --stack-name ${params.PROJECT_NAME}-${params.ENV} --query 'Stacks[0].StackStatus'").trim()
+                    if (stackStatus == '"ROLLBACK_COMPLETE"') {
+                        sh "aws cloudformation delete-stack --stack-name ${params.PROJECT_NAME}-${params.ENV}"
+                    }
+                }
+            }
+        }
     }
 }
