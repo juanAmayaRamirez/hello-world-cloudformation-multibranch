@@ -1,0 +1,96 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "AWS Glue Job Test"
+
+Parameters:
+  Env:
+    Type: String
+    Description: environment where the template will be deployed
+    AllowedValues:
+      - "dev"
+      - "qa"
+      - "uat"
+      - "prod"
+  ProjectName:
+    Type: String
+    Description: name of the project
+
+Resources:
+  GlueJobRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub glue-role-${Env}-${ProjectName}-jenkins-cfn
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "glue.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: !Sub glue-policy-${Env}-${ProjectName}-jenkins-cfn
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "*"
+                Resource: "*"
+
+  lambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub lambda-role-${Env}-${ProjectName}-jenkins-cfn
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: !Sub lambda-policy-${Env}-${ProjectName}-jenkins-cfn
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "*"
+                Resource: "*"
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: "python3.9"
+      Code: ./lambda/
+      Handler: app.handler
+      Role: !GetAtt lambdaRole.Arn
+
+  GlueJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: !Sub glue-job-${Env}-${ProjectName}-jenkins-cfn
+      Role: !Ref GlueJobRole
+      Command:
+        Name: glueetl
+        ScriptLocation: "./glue/script.py"
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-enable"
+      ExecutionProperty:
+        MaxConcurrentRuns: 2
+      MaxRetries: 0
+
+  S3Bucket:
+    Type: 'AWS::S3::Bucket'
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub s3-bucket-${Env}-${ProjectName}-jenkins-cfn

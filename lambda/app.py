@@ -1,0 +1,1 @@
+print("lambda-deployed with cfn and jenkins")
