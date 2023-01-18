@@ -6,9 +6,8 @@ pipeline{
 	stages{
 		stage("Validate"){
 			steps{
+                sh "aws --version"
 				withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'my-creds', secretKeyVariable:'AWS_SECRET_ACCESS_KEY')]){
-					sh "aws --version"
-					sh "sam --version"
 					sh "aws sts get-caller-identity"
 				}
 			}
