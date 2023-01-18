@@ -16,11 +16,7 @@ pipeline{
 		stage("Package"){
 			steps{
 				withCredentials([aws(accessKeyVariable: 'AWS_ACCESS_KEY_ID', credentialsId: 'my-creds', secretKeyVariable:'AWS_SECRET_ACCESS_KEY')]){
-					if (fileExists('.aws-sam')) {
-						sh "sam package --s3-bucket [MY-BUCKET] --s3-prefix [PROJECT-NAME] --output-template-file packaged-template.yml"
-					} else {
-						sh "aws cloudformation package --template-file template.yml --s3-bucket 229413076389-sam-artifacts-dev --s3-prefix project-cfn-jenkins --output-template-file packaged-template.yml"
-					}
+				    sh "aws cloudformation package --template-file template.yml --s3-bucket 229413076389-sam-artifacts-dev --s3-prefix project-cfn-jenkins --output-template-file packaged-template.yml"
 				}
 			}
 		}
